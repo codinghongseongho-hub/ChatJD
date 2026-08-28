@@ -427,15 +427,15 @@
                             type="password" 
                             id="apiKeyInput" 
                             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-purple-200 focus:outline-none focus:border-purple-500 pr-10"
-                            placeholder="개인 API 키 입력 (미입력 시 자동 연동)"
+                            placeholder="개인 API 키 입력"
                         >
                         <button type="button" id="toggleKeyVisibility" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 text-xs">
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <p class="text-[11px] text-slate-400">개인 API 키를 등록하거나, 비워두시면 시스템 자동 연동 키로 동작합니다.</p>
+                    <p class="text-[11px] text-slate-400">개인 API 키를 입력하면 해당 키로 Gemini API를 호출합니다.</p>
                 </div>
-                    <p class="text-[11px] text-slate-400">사용자 지정 API 키가 기본 내장되어 있습니다.</p>
+                    
                 </div>
 
                 <!-- Model Info -->
@@ -496,11 +496,11 @@
 - 최신 게임 정보 및 유저 평가 확인이 필요한 경우 구글 검색 정보를 적극 반영하세요.`;
 
         // Default API Key (leave empty to leverage auto runtime key insertion)
-        const USER_PROVIDED_API_KEY = "";
+        
 
         // State Management
         let state = {
-            apiKey: localStorage.getItem('chatjd_apiKey') || USER_PROVIDED_API_KEY,
+            apiKey: localStorage.getItem('chatjd_apiKey') || '',
             useGrounding: true, // Enable search by default for up-to-date game scores
             currentChatId: Date.now().toString(),
             chats: JSON.parse(localStorage.getItem('chatjd_chats')) || {},
@@ -578,8 +578,11 @@
                 payload.tools = [{ "google_search": {} }];
             }
 
-            const activeKey = state.apiKey || USER_PROVIDED_API_KEY;
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${activeKey}`;
+            const activeKey = state.apiKey;
+            if (!activeKey) {
+                throw new Error("설정에서 Gemini API Key를 먼저 입력해 주세요.");
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(activeKey)}`;
 
             while (retries <= maxRetries) {
                 try {
@@ -1065,6 +1068,10 @@
             });
             saveSettingsBtn.addEventListener('click', () => {
                 const newKey = apiKeyInput.value.trim();
+                if (!newKey) {
+                    showToast("Gemini API Key를 입력해 주세요.");
+                    return;
+                }
                 state.apiKey = newKey;
                 localStorage.setItem('chatjd_apiKey', newKey);
                 showToast("설정이 저장되었습니다.");
